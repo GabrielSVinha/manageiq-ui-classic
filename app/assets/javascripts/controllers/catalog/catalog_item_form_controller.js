@@ -1,4 +1,4 @@
-ManageIQ.angular.app.controller('catalogItemFormController', ['$scope', 'catalogItemFormId', 'miqService', 'postService', 'API', 'catalogItemDataFactory', function($scope, catalogItemFormId, miqService, postService, API, catalogItemDataFactory) {
+ManageIQ.angular.app.controller('catalogItemFormController', ['$scope', 'catalogItemFormId', 'currentRegion', 'miqService', 'postService', 'API', 'catalogItemDataFactory', function($scope, catalogItemFormId, currentRegion, miqService, postService, API, catalogItemDataFactory) {
   var vm = this;
   var sort_options = "&sort_by=name&sort_order=ascending"
   var init = function() {
@@ -39,6 +39,7 @@ ManageIQ.angular.app.controller('catalogItemFormController', ['$scope', 'catalog
     getRemoveResourcesTypes();
     vm.provisioning_cloud_type = '';
     vm.retirement_cloud_type = '';
+    vm.currentRegion = currentRegion;
     vm.formId = catalogItemFormId;
     vm.afterGet = false;
     vm.model = "catalogItemModel";
@@ -114,7 +115,11 @@ ManageIQ.angular.app.controller('catalogItemFormController', ['$scope', 'catalog
     vm.catalogItemModel.provisioning_dialog_name = configData.provision.new_dialog_name;
     vm.catalogItemModel.provisioning_key = '';
     vm.catalogItemModel.provisioning_value = '';
-    vm.catalogItemModel.provisioning_become_enabled = configData.provision.become_enabled
+    if (configData.provision.become_enabled === undefined) {
+      vm.catalogItemModel.provisioning_become_enabled = false;
+    } else {
+      vm.catalogItemModel.provisioning_become_enabled = configData.provision.become_enabled;
+    }
     setExtraVars('provisioning_variables', configData.provision.extra_vars);
 
     if (typeof configData.retirement.repository_id !== 'undefined') {
@@ -124,7 +129,11 @@ ManageIQ.angular.app.controller('catalogItemFormController', ['$scope', 'catalog
       vm.catalogItemModel.retirement_remove_resources = configData.retirement.remove_resources;
       vm.catalogItemModel.retirement_machine_credential_id = configData.retirement.credential_id;
     }
-    vm.catalogItemModel.retirement_become_enabled = configData.retirement.become_enabled
+    if (configData.retirement.become_enabled === undefined) {
+      vm.catalogItemModel.retirement_become_enabled = false;
+    } else {
+      vm.catalogItemModel.retirement_become_enabled = configData.retirement.become_enabled;
+    }
     vm.catalogItemModel.retirement_network_credential_id = configData.retirement.network_credential_id;
     vm.catalogItemModel.retirement_cloud_credential_id = setIfDefined(configData.retirement.cloud_credential_id);
     vm.catalogItemModel.retirement_inventory = configData.retirement.hosts;
@@ -216,7 +225,7 @@ ManageIQ.angular.app.controller('catalogItemFormController', ['$scope', 'catalog
     if (configData.provisioning_cloud_credential_id !== '')
       catalog_item['config_info']['provision']['cloud_credential_id'] = configData.provisioning_cloud_credential_id;
 
-    if (configData.provisioning_dialog_id !== '') {
+    if (configData.provisioning_dialog_id !== undefined && configData.provisioning_dialog_id !== '') {
       catalog_item['config_info']['provision']['dialog_id'] = configData.provisioning_dialog_id;
     } else if (configData.provisioning_dialog_name !== '')
       catalog_item['config_info']['provision']['new_dialog_name'] = configData.provisioning_dialog_name;
@@ -260,7 +269,7 @@ ManageIQ.angular.app.controller('catalogItemFormController', ['$scope', 'catalog
     })
 
     // list of repositories
-    API.get("/api/configuration_script_sources?collection_class=ManageIQ::Providers::EmbeddedAnsible::AutomationManager::ConfigurationScriptSource&expand=resources&attributes=id,name" + sort_options).then(function(data) {
+    API.get("/api/configuration_script_sources?collection_class=ManageIQ::Providers::EmbeddedAnsible::AutomationManager::ConfigurationScriptSource&expand=resources&attributes=id,name&filter[]=region_number=" + vm.currentRegion + sort_options).then(function(data) {
       vm.repositories = data.resources;
       vm._retirement_repository = _.find(vm.repositories, {id: vm.catalogItemModel.retirement_repository_id});
       vm._provisioning_repository = _.find(vm.repositories, {id: vm.catalogItemModel.provisioning_repository_id});
@@ -326,8 +335,8 @@ ManageIQ.angular.app.controller('catalogItemFormController', ['$scope', 'catalog
 
   // get playbooks for selected repository
   vm.repositoryChanged = function(prefix, id) {
-    API.get("/api/configuration_script_sources/" + id + "?attributes=configuration_script_payloads" + sort_options).then(function (data) {
-      vm[prefix + '_playbooks'] = data.configuration_script_payloads;
+    API.get("/api/configuration_script_sources/" + id + "/configuration_script_payloads?expand=resources&filter[]=region_number=" + vm.currentRegion + sort_options).then(function (data) {
+      vm[prefix + '_playbooks'] = data.resources;
       // if repository has changed
       if (id !== vm.catalogItemModel[prefix + '_repository_id']) {
         vm.catalogItemModel[prefix + '_playbook_id'] = '';
@@ -338,6 +347,14 @@ ManageIQ.angular.app.controller('catalogItemFormController', ['$scope', 'catalog
       }
     })
   };
+
+  // reset fields when retirement playbook type is changed
+  $scope.$watch('vm._retirement_playbook', function(value) {
+    if (value && (vm.catalogItemModel.retirement_inventory === undefined || vm.catalogItemModel.retirement_inventory === '')) {
+      vm.catalogItemModel.retirement_inventory = 'localhost';
+      vm.catalogItemModel.retirement_become_enabled = false;
+    }
+  });
 
   $scope.$watch('vm._provisioning_repository', function(value) {
     if (value) {
@@ -534,6 +551,16 @@ ManageIQ.angular.app.controller('catalogItemFormController', ['$scope', 'catalog
   var closeConfirmationModal = function() {
     angular.element('#confirmationModal').modal("hide");
   }
+
+  $scope.dialogNameValidation = function() {
+    miqService.miqFlashClear();
+    $scope.angularForm.$setValidity("unchanged", true);
+
+    if (vm.dialogs.filter(function(e) { return e.label == vm.catalogItemModel.provisioning_dialog_name; }).length > 0) {
+      miqService.miqFlash("error", "Dialog name already exists");
+      $scope.angularForm.$setValidity("unchanged", false);
+    }
+  };
 
   init();
 }]);

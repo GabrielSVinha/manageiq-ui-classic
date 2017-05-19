@@ -492,6 +492,7 @@ Rails.application.routes.draw do
         backup_select
         snapshot_new
         edit
+        delete_volumes
         cloud_volume_tenants
         index
         new
@@ -2348,6 +2349,7 @@ Rails.application.routes.draw do
         edit
         edit_vm
         form_field_changed
+        ownership_form_fields
         show
       ) +
                ownership_post

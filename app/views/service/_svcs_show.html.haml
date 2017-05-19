@@ -13,6 +13,20 @@
     .tab-content
       = miq_tab_content("details", 'default', :class => 'cm-tab') do
         = render :partial => "layouts/textual_groups_generic"
+        - child_services = @record.direct_service_children.select(&:display)
+        - unless child_services.blank?
+          .row
+            .col-md-12.col-lg-6
+              %h3
+                = _('Child Services')
+              %table.table.table-striped.table-bordered.table-hover
+                %tbody
+                  - child_services.sort_by { |o| o.name.downcase }.each do |s|
+                    %tr{:onclick => "miqTreeActivateNode('svcs_tree', 's-#{to_cid(s.id)}');", :title => _("View this Service")}
+                      %td.table-view-pf-select
+                        %i.pficon.pficon-service
+                      %td
+                        = h(s.name)
         .row
           .col-md-12.col-lg-6
             %h3
@@ -28,8 +42,7 @@
             .form-horizontal.static
               .form-group
                 .col-md-9
-                  - htm = @job.raw_stdout('html').gsub('"', '\"').gsub("'", "\\\\'")
-                  %div{'ng-bind-html'=>"vm.sanitizeRenderHtml('#{htm}')"}
+                  %div{'ng-bind-html'=>"vm.sanitizeRenderHtml('#{sanitize_output(@job.raw_stdout('html'))}')"}
         - if job
           = miq_tab_content("retirement", 'default', :class => 'cm-tab') do
             = render :partial => "layouts/textual_groups_tabs", :locals => {:textual_group_list => textual_retirement_group_list}
@@ -38,8 +51,7 @@
             .form-horizontal.static
               .form-group
                 .col-md-9
-                  - htm = job.raw_stdout('html').gsub('"', '\"').gsub("'", "\\\\'")
-                  %div{'ng-bind-html'=>"vm.sanitizeRenderHtml('#{htm}')"}
+                  %div{'ng-bind-html'=>"vm.sanitizeRenderHtml('#{sanitize_output(job.raw_stdout('html'))}')"}
 :javascript
   miq_tabs_init('#services_tab');
   miq_bootstrap('#service_details', 'sanitizeRender');

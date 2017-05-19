@@ -1,4 +1,6 @@
 class ServiceController < ApplicationController
+  include Mixins::GenericSessionMixin
+
   before_action :check_privileges
   before_action :get_session_data
   after_action :cleanup_action
@@ -21,6 +23,10 @@ class ServiceController < ApplicationController
 
   def x_button
     generic_x_button(SERVICE_X_BUTTON_ALLOWED_ACTIONS)
+  end
+
+  def title
+    _("My Services")
   end
 
   # Service show selected, redirect to proper controller
@@ -135,6 +141,19 @@ class ServiceController < ApplicationController
 
   private
 
+  def sanitize_output(stdout)
+    htm = stdout.gsub('"', '\"')
+
+    regex_map = {
+      /'/  => "\\\\'",
+      /{{/ => '\{\{',
+      /}}/ => '\}\}'
+    }
+    regex_map.each_pair { |f, t| htm.gsub!(f, t) }
+    htm
+  end
+  helper_method :sanitize_output
+
   def textual_group_list
     if @record.type == "ServiceAnsiblePlaybook"
       [%i(properties), %i(lifecycle tags)]
@@ -228,10 +247,10 @@ class ServiceController < ApplicationController
       @view, @pages = get_view(Vm, :parent => @record, :parent_method => :all_vms, :all_pages => true)  # Get the records (into a view) and the paginator
     when "Hash"
       if id == "asrv"
-        process_show_list(:where_clause => "retired is false and ancestry is null")
+        process_show_list(:where_clause => "retired is false and services.display is true")
         @right_cell_text = _("Active Services")
       else
-        process_show_list(:where_clause => "retired is true and ancestry is null")
+        process_show_list(:where_clause => "retired is true and services.display is true")
         @right_cell_text = _("Retired Services")
       end
     else      # Get list of child Catalog Items/Services of this node
@@ -408,14 +427,13 @@ class ServiceController < ApplicationController
   end
 
   def get_session_data
-    @title      = _("My Services")
+    super
     @layout     = "services"
-    @lastaction = session[:svc_lastaction]
     @options    = session[:prov_options]
   end
 
   def set_session_data
-    session[:svc_lastaction] = @lastaction
+    super
     session[:prov_options]   = @options if @options
   end
 

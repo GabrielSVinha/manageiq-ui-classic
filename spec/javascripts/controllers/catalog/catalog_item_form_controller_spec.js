@@ -1,5 +1,5 @@
 describe('catalogItemFormController', function() {
-  var $scope, $controller, postService;
+  var $scope, $controller, currentRegion, postService;
 
   beforeEach(module('ManageIQ'));
 
@@ -33,7 +33,7 @@ describe('catalogItemFormController', function() {
             'var1': {'default': 'default_val1'},
             'var2': {'default': 'default_val2'}
           },
-          become_enabled: undefined,
+          become_enabled: false,
           network_credential_id: undefined
         },
         retirement: {
@@ -46,6 +46,7 @@ describe('catalogItemFormController', function() {
 
     $controller = _$controller_('catalogItemFormController', {
       $scope: $scope,
+      currentRegion: currentRegion,
       catalogItemFormId: 1000000000001
     });
   }));

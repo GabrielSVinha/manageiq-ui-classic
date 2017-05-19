@@ -2,7 +2,7 @@ module PhysicalServerHelper::TextualSummary
   def textual_group_properties
     TextualGroup.new(
       _("Properties"),
-      %i(name model product_name manufacturer machine_type serial_number ems_ref memory cores)
+      %i(name model product_name manufacturer machine_type serial_number ems_ref memory cores health_state loc_led_state)
     )
   end
 
@@ -21,6 +21,17 @@ module PhysicalServerHelper::TextualSummary
   end
 
   def textual_group_compliance
+  end
+
+  def textual_group_networks
+    TextualGroup.new(_("Networks"), %i(mac ipv4 ipv6))
+  end
+
+  def textual_group_assets
+    TextualGroup.new(
+      _("Assets"),
+      %i(support_contact description location room_id rack_name lowest_rack_unit)
+    )
   end
 
   def textual_host
@@ -69,5 +80,49 @@ module PhysicalServerHelper::TextualSummary
 
   def textual_power_state
     {:label => _("Power State"), :value => @record.power_state}
+  end
+
+  def textual_mac
+    {:label =>  _("Mac Address"), :value => @record.hardware.guest_devices.collect { |device| device[:address] }.join(", ") }
+  end
+
+  def textual_ipv4
+    {:label =>  _("IPV4 Address"), :value => @record.hardware.guest_devices.collect { |device| device.network.ipaddress }.join(", ") }
+  end
+
+  def textual_ipv6
+    {:label =>  _("IPV6 Address"), :value => @record.hardware.guest_devices.collect { |device| device.network.ipv6address }.join(", ") }
+  end
+
+  def textual_loc_led_state
+    {:label => _("Identify LED State"), :value => @record.location_led_state}
+  end
+
+  def textual_support_contact
+    {:label => _("Support contact"), :value => @record.asset_details['contact']}
+  end
+
+  def textual_description
+    {:label => _("Description"), :value => @record.asset_details['description']}
+  end
+
+  def textual_location
+    {:label => _("Location"), :value => @record.asset_details['location']}
+  end
+
+  def textual_room_id
+    {:label => _("Room"), :value => @record.asset_details['room_id']}
+  end
+
+  def textual_rack_name
+    {:label => _("Rack name"), :value => @record.asset_details['rack_name']}
+  end
+
+  def textual_lowest_rack_unit
+    {:label => _("Lowest rack name"), :value => @record.asset_details['lowest_rack_unit']}
+  end
+
+  def textual_health_state
+    {:label => _("Health State"), :value => @record.health_state}
   end
 end
