@@ -1,5 +1,5 @@
 ManageIQ.angular.app.controller('cloudNetworkFormController', ['$scope', 'cloudNetworkFormId', 'miqService', 'API', function($scope, cloudNetworkFormId, miqService, API) {
-  $scope.cloudNetworkModel = { name: '', ems_id: '', cloud_tenant_id: '', provider_network_type: ''  };
+  $scope.cloudNetworkModel = { name: '', ems_id: '', cloud_tenant_id: '' };
   $scope.formId = cloudNetworkFormId;
   $scope.afterGet = false;
   $scope.modelCopy = angular.copy( $scope.cloudNetworkModel );
@@ -56,4 +56,8 @@ ManageIQ.angular.app.controller('cloudNetworkFormController', ['$scope', 'cloudN
     $scope.angularForm.$setPristine(true);
     miqService.miqFlash("warn", "All changes have been reset");
   };
+
+  $scope.filterNetworkManagerChanged = miqService.getProviderTenants(function(data) {
+    $scope.available_tenants = data.resources;
+  });
 }]);

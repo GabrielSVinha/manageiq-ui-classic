@@ -15,12 +15,13 @@ if ENV["RAILS_ENV"] != "production" || defined?(Rake)
 else
   require 'bootstrap-sass/engine'
   require 'font_awesome/sass/rails/engine'
-
   require 'patternfly-sass/engine'
 end
 
+require 'high_voltage'
 require 'lodash-rails'
 require 'jquery-hotkeys-rails'
+require "novnc-rails"
 
 module ManageIQ
   module UI
@@ -28,6 +29,16 @@ module ManageIQ
       class Engine < ::Rails::Engine
         config.autoload_paths << File.expand_path(File.join(root, 'app', 'controllers', 'mixins'), __FILE__)
         config.autoload_paths << File.expand_path(File.join(root, 'lib'), __FILE__)
+        if Rails.env.production?
+          require 'uglifier'
+          config.assets.js_compressor = Uglifier.new(
+            :compress => {
+              :unused      => false,
+              :keep_fargs  => true,
+              :keep_fnames => true
+            }
+          )
+        end
 
         def vmdb_plugin?
           true
